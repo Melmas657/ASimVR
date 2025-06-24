@@ -1,459 +1,150 @@
 #VRML V2.0 utf8
 
-# This VRML file defines a 3D model of a Chemical Reactor.
-# It includes a main cylindrical vessel, various pipes, an agitator,
-# and sensors, all colored and positioned appropriately.
-# This improved version incorporates OpenSCAD models and includes
-# specific DEF names and animation structures for dynamic control
-# via JavaScript/Simulink.
+# Component and Profile declarations (standard)
+# component USE_RigidBodies 1
+# component USE_Shaders 1
+# component USE_Scripting 1
+# profile Interactive
 
 WorldInfo {
-  title "ASimVR Polymerization CSTR Reactor (Dynamic Ready)"
+  title "ASimVR Polymerization CSTR Reactor"
 }
 
-# Define reusable materials for different parts of the reactor
-DEF REACTOR_BODY_MATERIAL Material {
-  diffuseColor 0.6 0.8 0.9
-  specularColor 0.8 0.8 0.8
-  shininess 0.1
-}
-
-DEF PIPE_MATERIAL Material {
-  diffuseColor 0.4 0.4 0.4
-  specularColor 0.7 0.7 0.7
-  shininess 0.1
-}
-
-DEF AGITATOR_BLADE_MATERIAL Material {
-  diffuseColor 0.8 0.2 0.2
-  specularColor 0.9 0.9 0.9
-  shininess 0.1
-}
-
-DEF AGITATOR_SHAFT_MATERIAL Material {
-  diffuseColor 0.9 0.9 0.0
-  specularColor 0.9 0.9 0.9
-  shininess 0.1
-}
-
-# NEW/IMPROVED: Material for liquid, specifically for dynamic color/transparency changes
-DEF LIQUID_DISPLAY_MATERIAL Material {
-  diffuseColor 0.2 0.6 1.0 # Initial blue color
-  transparency 0.5 # Initial transparency
-}
-
-# NEW/IMPROVED: Material for sensors, for dynamic color feedback (e.g., green for normal, red for warning)
-DEF TEMP_SENSOR_DISPLAY_MATERIAL Material {
-  diffuseColor 0.2 0.7 0.2 # Initial green
-  specularColor 0.8 0.8 0.8
-  shininess 0.1
-}
-
-DEF PRESS_SENSOR_DISPLAY_MATERIAL Material {
-  diffuseColor 0.2 0.7 0.2 # Initial green
-  specularColor 0.8 0.8 0.8
-  shininess 0.1
-}
-
-DEF BASE_MATERIAL Material { # This is for simple base if used. Inlined base has its own material.
-  diffuseColor 0.3 0.3 0.3
-  specularColor 0.6 0.6 0.6
-  shininess 0.1
-}
-
-# Drain Funnel Cone for Geometry Variety
-DEF DRAIN_CONE Transform {
-  translation 0 -3.3 0
-  children [
-    Shape {
-      appearance Appearance { material USE PIPE_MATERIAL }
-      geometry Cone { bottomRadius 0.4 height 0.8 }
-    }
-  ]
-}
-
-# Main Reactor Body
-DEF REACTOR_BODY_VISUAL Transform { # Renamed for clarity as 'reactor body' refers to the visual part
-  translation 0 0 0
-  children [
-    Shape {
-      appearance Appearance {
-        material USE REACTOR_BODY_MATERIAL
-        texture ImageTexture {
-          url "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEASABIAAD/2wCEAAkGBxAQEhIQEBAQEBAQEBAPEBEQDxAPDw8PFREWFhURExMYHSggGBolHRUTITEhJSkrLi4uFx8zODMsNygtLisBCgoKDg0OFQ8PFSsZFRkrKy0rKystKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrK//AABEIAKgBLAMBIgACEQEDEQH/xAAUAAEAAAAAAAAAAAAAAAAAAAAJ/8QAFhABAQEAAAAAAAAAAAAAAAAAAQID/9oADAMBAAIQAxAAAAHt//8QAFBABAAAAAAAAAAAAAAAAAAAAX/2gAIAQEAAQUC//8QAFBABAAAAAAAAAAAAAAAAAAAAX/2gAIAQMBAT8B/8QAFBABAAAAAAAAAAAAAAAAAAAAX/2gAIAQIBAT8B/9k="
-        }
-      }
-      geometry Cylinder { height 5.0 radius 2.0 }
-    }
-  ]
-}
-
-# Agitator (inside the reactor) - now wrapped in a Transform for animation
-DEF AGITATOR_ROTATOR Transform { # This DEF will be targeted by TimeSensor/Interpolator
-  translation 0 1 0 # Positioned inside the reactor, slightly above center
-  children [
-    # Agitator Shaft
-    Transform {
-      translation 0 1.5 0
-      children [
-        Shape {
-          appearance Appearance { material USE AGITATOR_SHAFT_MATERIAL }
-          geometry Cylinder { height 3.0 radius 0.1 }
-        }
-      ]
-    }
-    # Agitator Blades (example: two simple box blades)
-    Transform {
-      translation 0 0 0
-      rotation 0 1 0 0.785
-      children [
-        Shape {
-          appearance Appearance { material USE AGITATOR_BLADE_MATERIAL }
-          geometry Box { size 1.5 0.1 0.5 }
-        }
-      ]
-    }
-    Transform {
-      translation 0 0 0
-      rotation 0 1 0 2.356
-      children [
-        Shape {
-          appearance Appearance { material USE AGITATOR_BLADE_MATERIAL }
-          geometry Box { size 1.5 0.1 0.5 }
-        }
-      ]
-    }
-  ]
-}
-
-# NEW/IMPROVED: Liquid - now with a transform for level animation
-DEF LIQUID_LEVEL_TRANSFORM Transform { # This DEF will be targeted by PositionInterpolator
-  translation 0 -1.5 0 # Initial liquid level (adjust as needed)
-  children [
-    Shape {
-      appearance Appearance { material USE LIQUID_DISPLAY_MATERIAL }
-      geometry Cylinder { height 1.0 radius 1.9 } # Height can be linked to level if desired
-    }
-  ]
-}
-
-# Inlet Pipe (top)
-DEF INLET_PIPE_MAIN Transform { # Renamed for clarity and potential sub-components
-  translation -2.0 2.0 0
-  rotation 0 0 1 1.57
-  children [
-    # Assuming 'Valve' PROTO is defined globally or within the main X3D scene
-    Valve { position 0 0 0.5 size 0.15 }
-    Shape {
-      appearance Appearance { material USE PIPE_MATERIAL }
-      geometry Cylinder { height 1.0 radius 0.2 }
-    }
-    Transform {
-      translation 0 0 0.5
-      children [
-        Shape {
-          appearance Appearance { material USE PIPE_MATERIAL }
-          geometry Sphere { radius 0.15 }
-        }
-      ]
-    }
-  ]
-}
-
-DEF VALVE_KNOB_VISUAL Transform { # Renamed for clarity
-  translation -2.0 2.8 0
-  children [
-    Shape {
-      appearance Appearance { material USE PIPE_MATERIAL }
-      geometry Sphere { radius 0.2 }
-    }
-  ]
-}
-
-# Outlet Pipe (bottom)
-DEF OUTLET_PIPE_MAIN Transform { # Renamed for clarity and potential sub-components
-  translation 2.0 -2.0 0
-  rotation 0 0 1 1.57
-  children [
-    Valve { position 0 0 -0.6 size 0.15 }
-    Shape {
-      appearance Appearance { material USE PIPE_MATERIAL }
-      geometry Cylinder { height 1.0 radius 0.2 }
-    }
-    Transform {
-      translation 0 0 -0.6
-      children [
-        Shape {
-          appearance Appearance { material USE PIPE_MATERIAL }
-          geometry Sphere { radius 0.15 }
-        }
-      ]
-    }
-  ]
-}
-
-# Temperature Sensor (side)
-DEF TEMP_SENSOR_VISUAL Transform { # Renamed for clarity
-  translation 0 0 2.2
-  children [
-    Shape {
-      appearance Appearance { material USE TEMP_SENSOR_DISPLAY_MATERIAL } # Using new DEF
-      geometry Sphere { radius 0.2 }
-    }
-    Transform {
-      translation 0 0 -0.5
-      children [
-        Shape {
-          appearance Appearance { material USE TEMP_SENSOR_DISPLAY_MATERIAL } # Using new DEF
-          geometry Cylinder { height 1.0 radius 0.05 }
-        }
-      ]
-    }
-  ]
-}
-
-# Pressure Sensor (top)
-DEF PRESS_SENSOR_VISUAL Transform { # Renamed for clarity
-  translation 0 2.7 0
-  children [
-    Shape {
-      appearance Appearance { material USE PRESS_SENSOR_DISPLAY_MATERIAL } # Using new DEF
-      geometry Box { size 0.4 0.4 0.4 }
-    }
-  ]
-}
-
-# INTEGRATED OPENSCAD MODELS:
-# IMPORTANT: Adjust 'scale' and 'translation' values for REACTOR_BASE_COMPLEX
-# and REACTOR_HOUSING_COMPLEX to correctly fit your reactor model.
-# These values are placeholders and will likely need fine-tuning.
-
-DEF REACTOR_BASE_COMPLEX Transform {
-  # These are crucial for correct sizing and positioning!
-  scale 0.05 0.05 0.05 # Adjust this scale factor (e.g., 0.01, 0.1)
-  translation 0 -2.7 0 # Adjust this translation (e.g., Y-axis to align base)
-  children [
-    Inline { url "base.wrl" } # Inlines Prince's OpenSCAD base
-  ]
-}
-
-DEF REACTOR_HOUSING_COMPLEX Transform {
-  # These are crucial for correct sizing and positioning!
-  scale 0.05 0.05 0.05 # Adjust this scale factor
-  translation 0 0 0 # Adjust this translation to wrap around reactor
-  children [
-    Inline { url "housing.wrl" } # Inlines Prince's OpenSCAD housing
-  ]
-}
-
-# Flange positioned near the bottom/base of the reactor (already inlined)
-DEF FLANGE_ASSEMBLY Transform {
-  translation 0 -2.5 0
-  children [
-    Inline { url "flange.wrl" }
-  ]
-}
-
-# ANIMATION SETUP (for dynamic control via JavaScript/Simulink)
-
-# Agitator Rotation Animation
-DEF AGITATOR_TIMER TimeSensor {
-  cycleInterval 5.0 # Full rotation every 5 seconds
-  loop TRUE
-  enabled TRUE # Set to FALSE initially if you want it to start stopped
-}
-
-DEF AGITATOR_ORIENT_INTERP OrientationInterpolator {
-  key [0.0, 0.25, 0.5, 0.75, 1.0]
-  keyValue [
-    0 1 0 0,         # Start (0 degrees)
-    0 1 0 1.5708,    # 90 degrees (PI/2)
-    0 1 0 3.14159,   # 180 degrees (PI)
-    0 1 0 4.71239,   # 270 degrees (3*PI/2)
-    0 1 0 6.28318    # 360 degrees (2*PI)
-  ]
-}
-
-ROUTE AGITATOR_TIMER.fraction_changed TO AGITATOR_ORIENT_INTERP.set_fraction
-ROUTE AGITATOR_ORIENT_INTERP.value_changed TO AGITATOR_ROTATOR.set_rotation # Targets the AGITATOR_ROTATOR Transform
-
-# Liquid Level Animation (Example)
-DEF LIQUID_LEVEL_TIMER TimeSensor {
-  cycleInterval 10.0 # Change level every 10 seconds (example)
-  loop TRUE
-  enabled TRUE # Set to FALSE initially if you want it to start stopped
-}
-
-DEF LIQUID_LEVEL_POS_INTERP PositionInterpolator {
-  key [0.0, 0.5, 1.0]
-  keyValue [
-    0 -2.0 0, # Low level
-    0 -1.0 0, # Mid level
-    0 0.0 0   # High level
-  ]
-}
-
-ROUTE LIQUID_LEVEL_TIMER.fraction_changed TO LIQUID_LEVEL_POS_INTERP.set_fraction
-ROUTE LIQUID_LEVEL_POS_INTERP.value_changed TO LIQUID_LEVEL_TRANSFORM.set_translation # Targets the LIQUID_LEVEL_TRANSFORM
-
-# Proximity sensor for user interaction
-DEF REACTOR_PROXIMITY_SENSOR ProximitySensor { # Renamed for clarity
-  size 10 10 10
-  center 0 0 0
-}
-
-# Script for general interaction / dynamic behavior
-DEF REACTOR_DYNAMICS_SCRIPT Script { # Renamed for broader purpose
-  # Define input/output fields for JS/Simulink control
-  eventIn SFBool set_agitator_enabled
-  eventIn SFFloat set_liquid_level
-  eventIn SFColor set_liquid_color
-  eventIn SFFloat set_liquid_transparency
-  eventIn SFBool set_valve_state
-  eventIn SFColor set_temp_sensor_color
-  eventIn SFColor set_press_sensor_color
-  eventIn SFBool proximity_entered # From REACTOR_PROXIMITY_SENSOR.enter
-  eventIn SFBool proximity_exited  # From REACTOR_PROXIMITY_SENSOR.exit
-
-  field SFNode liquid_material USE LIQUID_DISPLAY_MATERIAL
-  field SFNode liquid_level_transform USE LIQUID_LEVEL_TRANSFORM
-  field SFNode agitator_timer USE AGITATOR_TIMER
-  field SFNode inlet_valve_transform USE INLET_PIPE_MAIN # Assuming valve is part of pipe transform or has its own DEF
-  field SFNode outlet_valve_transform USE OUTLET_PIPE_MAIN # Assuming valve is part of pipe transform or has its own DEF
-  field SFNode temp_sensor_material USE TEMP_SENSOR_DISPLAY_MATERIAL
-  field SFNode press_sensor_material USE PRESS_SENSOR_DISPLAY_MATERIAL
+# --- TOP-LEVEL EVENTINS (Simulink Inputs) ---
+# These are the names Allan will use in the VR Sink block in Simulink.
+eventIn SFColor set_reactor_color
+eventIn SFFloat set_reactor_transparency
+eventIn SFVec3f set_liquid_level
+eventIn SFFloat set_liquid_transparency
+eventIn SFRotation set_agitator_rotation
+eventIn SFRotation set_valve_knob_rotation
+eventIn SFVec3f set_temp_sensor_scale
+eventIn SFVec3f set_press_sensor_scale
 
 
-  url "javascript:
-    // Global function to show messages (defined in HTML)
-    // function showMessageBox(msg) { /* ... */ }
-    // function hideMessageBox() { /* ... */ }
-
-    // --- Proximity Sensor Handler ---
-    function proximity_entered(value, timestamp) {
-        if (value && typeof window.showMessageBox === 'function') {
-            window.showMessageBox('You are close to the Reactor! Please be careful.');
-            // Additional actions when user enters proximity
-        }
-    }
-
-    function proximity_exited(value, timestamp) {
-        if (value && typeof window.hideMessageBox === 'function') {
-            window.hideMessageBox();
-            // Additional actions when user exits proximity
-        }
-    }
-
-    // --- Dynamic Control Functions (Called by JavaScript in HTML or directly by Simulink via ROUTE) ---
-
-    // Example: Controlling agitator animation
-    function set_agitator_enabled(value, timestamp) {
-        if (agitator_timer) {
-            agitator_timer.enabled = value;
-            console.log('Agitator enabled:', value);
-        }
-    }
-
-    // Example: Setting liquid level directly (if not using Interpolator)
-    function set_liquid_level(value, timestamp) {
-        if (liquid_level_transform) {
-            // Assuming value is a normalized height (e.g., 0.0 to 1.0)
-            const newY = -2.0 + (value * 2.0); // Adjust range based on your VRML model's liquid height
-            liquid_level_transform.translation = new SFVec3f(0, newY, 0);
-            console.log('Liquid level set to:', value);
-        }
-    }
-
-    // Example: Setting liquid color
-    function set_liquid_color(value, timestamp) {
-        if (liquid_material) {
-            liquid_material.diffuseColor = value; // Value should be an SFColor (e.g., '1 0 0')
-            console.log('Liquid color set to:', value.toString());
-        }
-    }
-
-    // Example: Setting liquid transparency
-    function set_liquid_transparency(value, timestamp) {
-        if (liquid_material) {
-            liquid_material.transparency = value; // Value should be an SFFloat (e.g., 0.5)
-            console.log('Liquid transparency set to:', value);
-        }
-    }
-
-    // Example: Setting valve state (needs PROTO to be defined or direct Transform access)
-    // This is complex as PROTO Valve doesn't expose a direct field for its position.
-    // Allan might need to pass data to a specific valve component's transform.
-    // For now, let's assume we can somehow access and set the position/rotation of valve parts.
-    function set_valve_state(value, timestamp) {
-        // This will depend heavily on how 'Valve' PROTO is defined and its internal DEF names
-        // You might need to directly target a Transform within the PROTOTYPE definition
-        // For simplicity, this example assumes a direct transform named VALVE_BODY_TRANSFORM exists
-        // if (inlet_valve_transform) {
-        //     const newRotation = value ? 1.5708 : 0; // Open/Close 90 degrees
-        //     inlet_valve_transform.rotation = new SFRotation(0, 1, 0, newRotation);
-        //     console.log('Inlet Valve state:', value);
-        // }
-    }
-
-    // Example: Setting sensor colors based on status (e.g., temperature OK/Warning)
-    function set_temp_sensor_color(value, timestamp) {
-        if (temp_sensor_material) {
-            temp_sensor_material.diffuseColor = value;
-            console.log('Temp Sensor color:', value.toString());
-        }
-    }
-
-    function set_press_sensor_color(value, timestamp) {
-        if (press_sensor_material) {
-            press_sensor_material.diffuseColor = value;
-            console.log('Press Sensor color:', value.toString());
-        }
-    }
-  "
-}
-
-# ROUTE EVENTS TO THE REACTOR_DYNAMICS_SCRIPT
-ROUTE REACTOR_PROXIMITY_SENSOR.enter TO REACTOR_DYNAMICS_SCRIPT.proximity_entered
-ROUTE REACTOR_PROXIMITY_SENSOR.exit TO REACTOR_DYNAMICS_SCRIPT.proximity_exited
-
-# ROUTE AGITATOR TIMER CONTROL FROM SCRIPT (if needed)
-# ROUTE some_script_output.agitator_enable TO AGITATOR_TIMER.set_enabled
-
-# ROUTE LIQUID LEVEL CONTROL FROM SCRIPT (if needed)
-# ROUTE some_script_output.liquid_level_value TO LIQUID_LEVEL_POS_INTERP.set_fraction
-# (Or if directly manipulating transform: ROUTE some_script_output.liquid_level_translation TO LIQUID_LEVEL_TRANSFORM.set_translation)
-
-# Add a default viewpoint for initial camera position
-DEF INITIAL_VIEWPOINT Viewpoint {
-  position 0 0 50.0 # Adjust if model is too big/small after inlining
-  orientation 0 0 1 0
-  fieldOfView 0.785398
-  description "Initial View"
-}
-
-# Proto Valve definition (retained from previous version)
-PROTO Valve [
+PROTO Valve [ # Reusable Valve component
   field SFVec3f position 0 0 0
   field SFFloat size 0.15
 ]
 {
+  Transform { translation IS position children [ Shape { appearance Appearance { material Material { diffuseColor 0.9 0.5 0.1 specularColor 1 1 1 shininess 0.2 } } geometry Sphere { radius IS size } } ] }
+}
+
+# Material Definitions (standard)
+DEF REACTOR_BODY_MATERIAL Material { diffuseColor 0.6 0.8 0.9 specularColor 0.8 0.8 0.8 shininess 0.1 }
+DEF PIPE_MATERIAL Material { diffuseColor 0.4 0.4 0.4 specularColor 0.7 0.7 0.7 shininess 0.1 }
+DEF AGITATOR_BLADE_MATERIAL Material { diffuseColor 0.8 0.2 0.2 specularColor 0.9 0.9 0.9 shininess 0.1 }
+DEF AGITATOR_SHAFT_MATERIAL Material { diffuseColor 0.9 0.9 0.0 specularColor 0.9 0.9 0.9 shininess 0.1 }
+DEF SENSOR_MATERIAL Material { diffuseColor 0.2 0.7 0.2 specularColor 0.8 0.8 0.8 shininess 0.1 }
+DEF BASE_MATERIAL Material { diffuseColor 0.3 0.3 0.3 specularColor 0.6 0.6 0.6 shininess 0.1 }
+
+DEF DRAIN_CONE Transform { translation 0 -3.3 0 children [ Shape { appearance Appearance { material USE PIPE_MATERIAL } } geometry Cone { bottomRadius 0.4 height 0.8 } ] }
+
+# PROTO Definition for Dynamic Reactor Body - Solved Base64 & IS for internal material
+PROTO DynamicReactorBody [
+  field SFColor reactor_color_input 0.6 0.8 0.9
+  field SFFloat reactor_transparency_input 0.0
+]
+{
   Transform {
-    translation IS position
+    translation 0 0 0
     children [
       Shape {
         appearance Appearance {
-          material Material {
-            diffuseColor 0.9 0.5 0.1
-            specularColor 1 1 1
-            shininess 0.2
+          material DEF DYNAMIC_REACTOR_BODY_MATERIAL_NODE Material { # DEF for ROUTE target
+            diffuseColor IS reactor_color_input
+            transparency IS reactor_transparency_input
+            specularColor 0.8 0.8 0.8 shininess 0.1
           }
         }
-        geometry Sphere {
-          radius IS size
-        }
+        geometry Cylinder { height 5.0 radius 2.0 }
       }
     ]
   }
 }
 
+# --- CRITICAL CORRECTION: REACTOR BODY INSTANTIATION ---
+# This places the reactor in the scene and exposes its PROTO fields for routing.
+DEF REACTOR_BODY_INSTANCE DynamicReactorBody { }
 
+# Agitator - Now ready for dynamic rotation via ROUTE
+DEF AGITATOR Transform {
+  translation 0 1 0
+  rotation 0 1 0 0 # Default, will be routed
+  children [
+    Transform { translation 0 1.5 0 children [ Shape { appearance Appearance { material USE AGITATOR_SHAFT_MATERIAL } geometry Cylinder { height 3.0 radius 0.1 } } ] }
+    Transform { translation 0 0 0 rotation 0 1 0 0.785 children [ Shape { appearance Appearance { material USE AGITATOR_BLADE_MATERIAL } geometry Box { size 1.5 0.1 0.5 } } ] }
+    Transform { translation 0 0 0 rotation 0 1 0 2.356 children [ Shape { appearance Appearance { material USE AGITATOR_BLADE_MATERIAL } geometry Box { size 1.5 0.1 0.5 } } ] }
+  ]
+}
+
+# LIQUID - Now ready for dynamic level and transparency via ROUTE
+DEF LIQUID Transform {
+  translation 0 -1 0 # Default, will be routed for level
+  children [
+    Shape {
+      appearance Appearance {
+        material DEF LIQUID_MATERIAL_NODE Material { # DEF for ROUTE target
+          diffuseColor 0.2 0.6 1.0
+          transparency 0.5 # Default, will be routed for transparency
+        }
+      }
+      geometry Cylinder { height 2.0 radius 1.9 }
+    }
+  ]
+}
+
+# Pipes (standard)
+DEF INLET_PIPE Transform { translation -2.0 2.0 0 rotation 0 0 1 1.57 children [ Valve { position 0 0 0.5 size 0.15 } Shape { appearance Appearance { material USE PIPE_MATERIAL } geometry Cylinder { height 1.0 radius 0.2 } } Transform { translation 0 0 0.5 children [ Shape { appearance Appearance { material USE PIPE_MATERIAL } geometry Sphere { radius 0.15 } } ] } ] }
+
+# VALVE_KNOB - Now ready for dynamic rotation via ROUTE
+DEF VALVE_KNOB Transform {
+  translation -2.0 2.8 0
+  rotation 0 1 0 0 # Default, will be routed
+  children [ Shape { appearance Appearance { material USE PIPE_MATERIAL } geometry Sphere { radius 0.2 } } ]
+}
+
+DEF OUTLET_PIPE Transform { translation 2.0 -2.0 0 rotation 0 0 1 1.57 children [ Valve { position 0 0 -0.6 size 0.15 } Shape { appearance Appearance { material USE PIPE_MATERIAL } geometry Cylinder { height 1.0 radius 0.2 } } Transform { translation 0 0 -0.6 children [ Shape { appearance Appearance { material USE PIPE_MATERIAL } geometry Sphere { radius 0.15 } } ] } ] }
+
+# Temperature Sensor - Now ready for dynamic scale via ROUTE
+DEF TEMP_SENSOR Transform {
+  translation 0 0 2.2
+  scale 1 1 1 # Default, will be routed
+  children [
+    Shape { appearance Appearance { material USE SENSOR_MATERIAL } geometry Sphere { radius 0.2 } }
+    Transform { translation 0 0 -0.5 children [ Shape { appearance Appearance { material USE SENSOR_MATERIAL } geometry Cylinder { height 1.0 radius 0.05 } } ] }
+  ]
+}
+
+DEF SENSOR_HOUSING Transform { translation 0 0 2.2 children [ Inline { url "https://raw.githubusercontent.com/Prince10107/ASimVR/main/housing.wrl" } ] }
+
+# Pressure Sensor - Now ready for dynamic scale via ROUTE
+DEF PRESS_SENSOR Transform {
+  translation 0 2.7 0
+  scale 1 1 1 # Default, will be routed
+  children [ Shape { appearance Appearance { material USE SENSOR_MATERIAL } geometry Box { size 0.4 0.4 0.4 } } ]
+}
+
+# Base elements (standard)
+DEF REACTOR_BASE Transform { translation 0 -2.7 0 children [ Shape { appearance Appearance { material USE BASE_MATERIAL } geometry Cylinder { height 0.4 radius 2.5 } } ] }
+DEF REACTOR_BASE_DETAILED Transform { translation 0 -2.7 0 children [ Inline { url "https://raw.githubusercontent.com/Prince10107/ASimVR/main/base.wrl" } ] }
+DEF FLANGE Transform { translation 0 -2.5 0 children [ Inline { url "https://raw.githubusercontent.com/Prince10107/ASimVR/main/flange.wrl" } ] }
+
+# Viewpoint & Proximity Sensor (standard)
+DEF INITIAL_VIEWPOINT Viewpoint { position 0 0 50.0 orientation 0 0 1 0 fieldOfView 0.785398 description "Initial View" }
+DEF REACTOR_PROXIMITY ProximitySensor { size 10 10 10 center 0 0 0 }
+DEF REACTOR_TRANSPARENCY_SWITCH Script { eventIn SFBool set_transparency eventOut SFFloat transparency_changed url "javascript: function set_transparency(value) { if (value) transparency_changed = 0.7; else transparency_changed = 0.0; }" }
+
+# --- ROUTING STATEMENTS (CRITICAL for Simulink Connectivity) ---
+# These connect the top-level eventIns (from Simulink) to the dynamic properties of your objects.
+ROUTE set_reactor_color TO REACTOR_BODY_INSTANCE.reactor_color_input
+ROUTE set_reactor_transparency TO REACTOR_BODY_INSTANCE.reactor_transparency_input
+
+ROUTE set_liquid_level TO LIQUID.translation
+ROUTE set_liquid_transparency TO LIQUID_MATERIAL_NODE.transparency
+
+ROUTE set_agitator_rotation TO AGITATOR.rotation
+ROUTE set_valve_knob_rotation TO VALVE_KNOB.rotation
+
+ROUTE set_temp_sensor_scale TO TEMP_SENSOR.scale
+ROUTE set_press_sensor_scale TO PRESS_SENSOR.scale
