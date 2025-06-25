@@ -1,78 +1,51 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
   <title>SimuNik – 3D VRML Viewer</title>
 
-  <!-- Tailwind CSS CDN (fine for development) -->
+  <!-- Tailwind CDN – OK for development -->
   <script src="https://cdn.tailwindcss.com"></script>
 
-  <!-- X_ITE VRML runtime -->
-  <script src="https://x3d.org/x3d/runtime/x_ite_latest/x_ite.min.js"></script>
+  <!-- ✅ NEW: working X_ITE CDN -->
+  <script defer src="https://cdn.jsdelivr.net/npm/x_ite@11.5.11/dist/x_ite.min.js"></script>
 
-  <!-- Prevent the favicon 404 -->
-  <link rel="icon" href="data:," />
-
-  <style>
-    /* Basic layout so everything is centered and dark-mode friendly */
-    body {
-      @apply bg-gray-900 text-white flex flex-col items-center justify-center min-h-screen gap-4;
-    }
-    /* Container that will hold the x3d-canvas (added later via JS) */
-    #x3dContainer {
-      width: 90vw;
-      max-width: 1000px;
-      height: 70vh;
-      border: 2px solid rgb(55 65 81); /* gray-700 */
-      border-radius: 0.75rem;
-      overflow: hidden;
-      background: #1f2937;            /* gray-800 (placeholder before model loads) */
-    }
-  </style>
+  <!-- Silence the favicon 404 -->
+  <link rel="icon" href="data:,">
 </head>
-<body>
+<body class="bg-gray-900 text-white flex flex-col items-center justify-center min-h-screen gap-4">
+
   <h1 class="text-3xl font-bold">SimuNik – VRML Reactor Model</h1>
-
-  <!-- message area -->
-  <div id="messageBox" class="text-lime-400"></div>
-
-  <!-- placeholder for the canvas -->
-  <div id="x3dContainer"></div>
+  <div id="msg" class="text-lime-400"></div>
+  <div id="x3dHost" class="w-[90vw] max-w-[1000px] h-[70vh] border-2 border-gray-700 rounded-lg overflow-hidden"></div>
 
   <script>
-    /** Utility: show a short text message, fades automatically */
-    function showMessage(text, ms = 5000) {
-      const box = document.getElementById("messageBox");
-      box.textContent = text;
-      if (ms) setTimeout(() => (box.textContent = ""), ms);
+    function flash(txt, ms = 5000) {
+      const m = document.getElementById('msg');
+      m.textContent = txt;
+      if (ms) setTimeout(() => m.textContent = '', ms);
     }
 
-    /** Main: run when everything (incl. X_ITE) is parsed */
-    window.addEventListener("load", () => {
-      showMessage("Initializing 3D viewer…");
+    window.addEventListener('load', () => {
+      flash('Initializing viewer…');
 
-      // 1) Create the custom element after the library is ready
-      const canvas = document.createElement("x3d-canvas");
-      canvas.id = "vrmlViewer";
-      canvas.setAttribute("src", "https://raw.githubusercontent.com/Melmas657/ASimVR/main/model.wrl");
-      canvas.setAttribute("antialias", "true");
-      canvas.setAttribute("showLog", "false");
-      canvas.style.width = "100%";
-      canvas.style.height = "100%";
+      const canvas = document.createElement('x3d-canvas');
+      canvas.id = 'vrmlViewer';
+      canvas.setAttribute('src', 'https://raw.githubusercontent.com/Melmas657/ASimVR/main/model.wrl');
+      canvas.setAttribute('antialias', 'true');
+      canvas.setAttribute('showLog', 'false');
+      canvas.style.width = '100%';
+      canvas.style.height = '100%';
 
-      // 2) Insert it into the page
-      document.getElementById("x3dContainer").appendChild(canvas);
+      document.getElementById('x3dHost').appendChild(canvas);
 
-      // 3) Handle success / error events
-      canvas.addEventListener("load", () => {
-        showMessage("✅ VRML model loaded. Use the mouse to explore!", 7000);
-        console.log("X_ITE: model loaded.");
-      });
+      canvas.addEventListener('load', () =>
+        flash('✅ Model loaded – use mouse to explore!', 7000));
 
-      canvas.addEventListener("error", (e) => {
-        showMessage("❌ Failed to load model.wrl. Check the URL or file format.", 8000);
-        console.error("X_ITE load error:", e);
+      canvas.addEventListener('error', e => {
+        console.error('X_ITE load error', e);
+        flash('❌ Could not load model.wrl – check URL or VRML syntax.', 8000);
       });
     });
   </script>
