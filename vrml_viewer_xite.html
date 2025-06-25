@@ -1,97 +1,103 @@
-<!DOCTYPE html>
+!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>SimuNik – VRML Reactor Model</title>
-
-  <!-- Tailwind CDN (fine for development) -->
-  <script src="https://cdn.tailwindcss.com"></script>
-
-  <!-- Working X_ITE build (11.5.11) -->
-  <script defer src="https://cdn.jsdelivr.net/npm/x_ite@11.5.11/dist/x_ite.min.js"></script>
-
-  <!-- Silence the favicon 404 -->
-  <link rel="icon" href="data:," />
-
-  <style>
-    body{ @apply bg-gray-900 text-white flex flex-col items-center
-                 justify-center min-h-screen gap-4; }
-    #viewerWrapper{ width:90vw;max-width:1000px;height:70vh;
-                    border:2px solid rgb(55,65,81); /* gray-700 */
-                    border-radius:0.75rem;overflow:hidden; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ASimVR CSTR Reactor 3D Viewer</title>
+    <!-- Tailwind CSS CDN for modern styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom CSS for layout and aesthetics, complementing Tailwind */
+        body {
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f0f0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        /* Styling for the X_ITE VRML canvas itself */
+        x3d-canvas {
+            display: block;
+            width: 95vw;
+            max-width: 1000px;
+            height: calc(100vh - 120px);
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+            background-color: #ffffff;
+            --x3d-canvas-background: transparent;
+            margin-top: 20px;
+            margin-bottom: 20px;
+        }
+        /* Styling for the transient message box */
+        #message-box {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(255, 255, 255, 0.95);
+            padding: 12px 25px;
+            border-radius: 10px;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15);
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.6s ease-in-out;
+            font-size: 1em;
+            color: #333;
+            text-align: center;
+            max-width: 90vw;
+        }
+        #message-box.show {
+            opacity: 1;
+        }
+    </style>
+    <!-- Loading the X_ITE library from X3D.org's CDN. -->
+    <!-- This is the most reliable source to avoid MIME type errors. -->
+    <script src="https://x3d.org/x3d/runtime/x_ite_latest/x_ite.min.js"></script>
 </head>
 <body>
-  <h1 class="text-3xl font-bold">SimuNik – VRML Reactor Model</h1>
-  <div id="msg" class="text-lime-400"></div>
 
-  <!-- Host for the <x3d-canvas> -->
-  <div id="viewerWrapper">
-    <!-- The canvas is injected by JS after X_ITE is ready -->
-  </div>
+    <div id="message-box"></div>
 
-  <!-- ────────────  Embedded / Fixed VRML scene  ──────────── -->
-  <script id="ReactorScene" type="model/x3d+vrml">
-#VRML V2.0 utf8
+    <!-- Using the x3d-canvas element to load the VRML model. -->
+    <!-- The 'src' attribute MUST point to the raw GitHub URL of your main VRML file. -->
+    <x3d-canvas id="vrmlViewer" src="https://raw.githubusercontent.com/Melmas657/ASimVR/main/model.wrl" antialias="true" showLog="false"></x3d-canvas>
 
-# A simple demo scene that exposes a color field via a PROTO.
-# This fixes the “Unknown node type or proto 'field'” error.
+    <script>
+        // Function to display transient messages to the user
+        const showMessage = (message, duration = 4000) => {
+            const msgBox = document.getElementById('message-box');
+            msgBox.textContent = message;
+            msgBox.classList.add('show');
+            setTimeout(() => {
+                msgBox.classList.remove('show');
+            }, duration);
+        };
 
-PROTO ReactorColorSwitcher [
-  field SFColor reactor_color_input_simulink 0.6 0.6 0.6
-] {
-  Shape {
-    appearance Appearance {
-      material Material {
-        diffuseColor IS reactor_color_input_simulink
-      }
-    }
-    geometry Box { size 1 1 1 }
-  }
-}
+        // Get the VRML viewer element
+        const vrmlViewer = document.getElementById('vrmlViewer');
 
-Transform {
-  translation 0 0 0
-  children [
-    ReactorColorSwitcher {
-      reactor_color_input_simulink 0 1 0   # green
-    }
-  ]
-}
-  </script>
-  <!-- ──────────────────────────────────────────────────────── -->
+        // Event listener for when the VRML model is successfully loaded
+        vrmlViewer.addEventListener('load', () => {
+            showMessage('VRML model loaded successfully! Use your mouse to navigate the 3D scene.', 5000);
+            console.log('X_ITE: VRML model loaded successfully.');
+        });
 
-  <script>
-    /** Show transient status messages */
-    function flash(text, ms = 5000){
-      const m = document.getElementById('msg');
-      m.textContent = text;
-      if(ms) setTimeout(()=>m.textContent='', ms);
-    }
+        // Event listener for errors during model loading
+        vrmlViewer.addEventListener('error', (event) => {
+            console.error('X_ITE: Error loading VRML model:', event);
+            showMessage('Error loading VRML model! Please ensure model.wrl is correctly structured and accessible on GitHub.', 8000);
+        });
 
-    /* Build the viewer once everything (incl. X_ITE) is loaded */
-    window.addEventListener('load', () => {
-      flash('Initializing 3D viewer…');
-
-      // create canvas and point it to the embedded VRML script
-      const canvas = document.createElement('x3d-canvas');
-      canvas.setAttribute('src', '#ReactorScene');
-      canvas.setAttribute('antialias', 'true');
-      canvas.setAttribute('showLog', 'false');
-      canvas.style.width  = '100%';
-      canvas.style.height = '100%';
-
-      document.getElementById('viewerWrapper').appendChild(canvas);
-
-      canvas.addEventListener('load', () =>
-        flash('✅ Scene loaded – drag to explore!', 7000));
-
-      canvas.addEventListener('error', e => {
-        console.error('X_ITE load error:', e);
-        flash('❌ Failed to load VRML scene. Check console for details.', 8000);
-      });
-    });
-  </script>
+        // Initial message when the page starts loading
+        window.onload = function() {
+            showMessage('Initializing 3D viewer and loading reactor model...', 5000);
+        };
+    </script>
 </body>
 </html>
