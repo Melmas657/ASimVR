@@ -1,104 +1,80 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ASimVR CSTR Reactor 3D Viewer</title>
-    <!-- Tailwind CSS CDN for modern styling -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        /* Custom CSS for layout and aesthetics, complementing Tailwind */
-        body {
-            margin: 0;
-            padding: 0;
-            height: 100vh;
-            width: 100vw;
-            overflow: hidden;
-            font-family: 'Inter', sans-serif;
-            background-color: #f0f0f0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-        }
-        /* Styling for the X_ITE VRML canvas itself */
-        x3d-canvas {
-            display: block;
-            width: 95vw;
-            max-width: 1000px;
-            height: calc(100vh - 120px);
-            border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
-            background-color: #ffffff;
-            --x3d-canvas-background: transparent;
-            margin-top: 20px;
-            margin-bottom: 20px;
-        }
-        /* Styling for the transient message box */
-        #message-box {
-            position: fixed;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background-color: rgba(255, 255, 255, 0.95);
-            padding: 12px 25px;
-            border-radius: 10px;
-            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15);
-            z-index: 1000;
-            opacity: 0;
-            transition: opacity 0.6s ease-in-out;
-            font-size: 1em;
-            color: #333;
-            text-align: center;
-            max-width: 90vw;
-        }
-        #message-box.show {
-            opacity: 1;
-        }
-    </style>
-    <!-- Loading the X_ITE library from CDN. -->
-    <!-- PREVIOUS ISSUE: MIME type mismatch error when loading from jsdelivr. -->
-    <!-- CORRECTION: Loading the library from X3D.org's own CDN, which is typically more stable and provides correct MIME types. -->
-    <script src="https://x3d.org/x3d/runtime/x_ite_latest/x_ite.min.js"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SimuNik – 3D VRML Viewer</title>
+
+  <!-- Tailwind CSS CDN (fine for development) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- X_ITE VRML runtime -->
+  <script src="https://x3d.org/x3d/runtime/x_ite_latest/x_ite.min.js"></script>
+
+  <!-- Prevent the favicon 404 -->
+  <link rel="icon" href="data:," />
+
+  <style>
+    /* Basic layout so everything is centered and dark-mode friendly */
+    body {
+      @apply bg-gray-900 text-white flex flex-col items-center justify-center min-h-screen gap-4;
+    }
+    /* Container that will hold the x3d-canvas (added later via JS) */
+    #x3dContainer {
+      width: 90vw;
+      max-width: 1000px;
+      height: 70vh;
+      border: 2px solid rgb(55 65 81); /* gray-700 */
+      border-radius: 0.75rem;
+      overflow: hidden;
+      background: #1f2937;            /* gray-800 (placeholder before model loads) */
+    }
+  </style>
 </head>
 <body>
+  <h1 class="text-3xl font-bold">SimuNik – VRML Reactor Model</h1>
 
-    <div id="message-box"></div>
+  <!-- message area -->
+  <div id="messageBox" class="text-lime-400"></div>
 
-    <!-- Using the x3d-canvas element to load the VRML model. -->
-    <!-- The 'src' attribute MUST point to the raw GitHub URL of your main VRML file. -->
-    <x3d-canvas id="vrmlViewer" src="https://raw.githubusercontent.com/Melmas657/ASimVR/main/model.wrl" antialias="true" showLog="false"></x3d-canvas>
+  <!-- placeholder for the canvas -->
+  <div id="x3dContainer"></div>
 
-    <script>
-        // Function to display transient messages to the user
-        const showMessage = (message, duration = 4000) => {
-            const msgBox = document.getElementById('message-box');
-            msgBox.textContent = message;
-            msgBox.classList.add('show');
-            setTimeout(() => {
-                msgBox.classList.remove('show');
-            }, duration);
-        };
+  <script>
+    /** Utility: show a short text message, fades automatically */
+    function showMessage(text, ms = 5000) {
+      const box = document.getElementById("messageBox");
+      box.textContent = text;
+      if (ms) setTimeout(() => (box.textContent = ""), ms);
+    }
 
-        // Get the VRML viewer element
-        const vrmlViewer = document.getElementById('vrmlViewer');
+    /** Main: run when everything (incl. X_ITE) is parsed */
+    window.addEventListener("load", () => {
+      showMessage("Initializing 3D viewer…");
 
-        // Event listener for when the VRML model is successfully loaded
-        vrmlViewer.addEventListener('load', () => {
-            showMessage('VRML model loaded successfully! Use your mouse to navigate the 3D scene.', 5000);
-            console.log('X_ITE: VRML model loaded successfully.');
-        });
+      // 1) Create the custom element after the library is ready
+      const canvas = document.createElement("x3d-canvas");
+      canvas.id = "vrmlViewer";
+      canvas.setAttribute("src", "https://raw.githubusercontent.com/Melmas657/ASimVR/main/model.wrl");
+      canvas.setAttribute("antialias", "true");
+      canvas.setAttribute("showLog", "false");
+      canvas.style.width = "100%";
+      canvas.style.height = "100%";
 
-        // Event listener for errors during model loading
-        vrmlViewer.addEventListener('error', (event) => {
-            console.error('X_ITE: Error loading VRML model:', event);
-            showMessage('Error loading VRML model! Please ensure model.wrl is correctly structured and accessible on GitHub.', 8000);
-        });
+      // 2) Insert it into the page
+      document.getElementById("x3dContainer").appendChild(canvas);
 
-        // Initial message when the page starts loading
-        window.onload = function() {
-            showMessage('Initializing 3D viewer and loading reactor model...', 5000);
-        };
-    </script>
+      // 3) Handle success / error events
+      canvas.addEventListener("load", () => {
+        showMessage("✅ VRML model loaded. Use the mouse to explore!", 7000);
+        console.log("X_ITE: model loaded.");
+      });
+
+      canvas.addEventListener("error", (e) => {
+        showMessage("❌ Failed to load model.wrl. Check the URL or file format.", 8000);
+        console.error("X_ITE load error:", e);
+      });
+    });
+  </script>
 </body>
 </html>
