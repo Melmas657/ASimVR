@@ -26,20 +26,22 @@ X3D {
       }
 
       # --- TOP-LEVEL FIELDS (Inputs from Simulink via VR Sink) ---
-      # These 'field' declarations are the correct and essential interface for Simulink.
-      field SFColor reactor_color_input_simulink 0.6 0.8 0.9      # Controls reactor body color (default: light blue)
-      field SFFloat reactor_transparency_input_simulink 0.0     # Controls reactor body transparency (default: opaque)
-      field SFVec3f liquid_level_input_simulink 0 -1 0          # Controls liquid level/position (default: mid-level)
-      field SFFloat liquid_transparency_input_simulink 0.5     # Controls liquid transparency (default: semi-transparent)
-      field SFRotation agitator_rotation_input_simulink 0 1 0 0 # Controls agitator rotation (default: no rotation)
-      field SFRotation valve_knob_rotation_input_simulink 0 1 0 0 # Controls valve knob rotation (default: no rotation)
-      field SFVec3f temp_sensor_scale_input_simulink 1 1 1      # Controls temperature sensor scale (default: original size)
-      field SFVec3f press_sensor_scale_input_simulink 1 1 1     # Controls pressure sensor scale (default: original size)
+      # CORRECTION FOR "Expected ']'" ERROR:
+      # SFColor and SFFloat default values are now explicitly enclosed in square brackets [ ].
+      # This satisfies stricter X3D parsers.
+      field SFColor reactor_color_input_simulink [0.6 0.8 0.9]      # Controls reactor body color (default: light blue)
+      field SFFloat reactor_transparency_input_simulink [0.0]     # Controls reactor body transparency (default: opaque)
+      field SFVec3f liquid_level_input_simulink [0 -1 0]          # Controls liquid level/position (default: mid-level)
+      field SFFloat liquid_transparency_input_simulink [0.5]     # Controls liquid transparency (default: semi-transparent)
+      field SFRotation agitator_rotation_input_simulink [0 1 0 0] # Controls agitator rotation (default: no rotation)
+      field SFRotation valve_knob_rotation_input_simulink [0 1 0 0] # Controls valve knob rotation (default: no rotation)
+      field SFVec3f temp_sensor_scale_input_simulink [1 1 1]      # Controls temperature sensor scale (default: original size)
+      field SFVec3f press_sensor_scale_input_simulink [1 1 1]     # Controls pressure sensor scale (default: original size)
 
       # --- Common PROTO Definitions ---
       PROTO Valve [ # Reusable Valve component
-        field SFVec3f position 0 0 0
-        field SFFloat size 0.15
+        field SFVec3f position [0 0 0]
+        field SFFloat size [0.15]
       ]
       {
         Transform { translation IS position children [ Shape { appearance Appearance { material Material { diffuseColor 0.9 0.5 0.1 specularColor 1 1 1 shininess 0.2 } } geometry Sphere { radius IS size } } ] }
@@ -54,16 +56,16 @@ X3D {
       DEF BASE_MATERIAL Material { diffuseColor 0.3 0.3 0.3 specularColor 0.6 0.6 0.6 shininess 0.1 }
 
       # --- Basic Geometries ---
-      DEF DRAIN_CONE Transform { translation 0 -3.3 0 children [ Shape { appearance Appearance { material USE PIPE_MATERIAL } } geometry Cone { bottomRadius 0.4 height 0.8 } ] }
+      DEF DRAIN_CONE Transform { translation [0 -3.3 0] children [ Shape { appearance Appearance { material USE PIPE_MATERIAL } } geometry Cone { bottomRadius 0.4 height 0.8 } ] }
 
       # --- PROTO Definition for Dynamic Reactor Body ---
       PROTO DynamicReactorBody [
-        field SFColor reactor_color_input 0.6 0.8 0.9
-        field SFFloat reactor_transparency_input 0.0
+        field SFColor reactor_color_input [0.6 0.8 0.9]
+        field SFFloat reactor_transparency_input [0.0]
       ]
       {
         Transform {
-          translation 0 0 0
+          translation [0 0 0]
           children [
             Shape {
               appearance Appearance {
@@ -84,18 +86,18 @@ X3D {
 
       # --- AGITATOR (Mixer) ---
       DEF AGITATOR Transform {
-        translation 0 1 0
-        rotation 0 1 0 0
+        translation [0 1 0]
+        rotation [0 1 0 0]
         children [
-          Transform { translation 0 1.5 0 children [ Shape { appearance Appearance { material USE AGITATOR_SHAFT_MATERIAL } geometry Cylinder { height 3.0 radius 0.1 } } ] }
-          Transform { translation 0 0 0 rotation 0 1 0 0.785 children [ Shape { appearance Appearance { material USE AGITATOR_BLADE_MATERIAL } geometry Box { size 1.5 0.1 0.5 } } ] }
-          Transform { translation 0 0 0 rotation 0 1 0 2.356 children [ Shape { appearance Appearance { material USE AGITATOR_BLADE_MATERIAL } geometry Box { size 1.5 0.1 0.5 } } ] }
+          Transform { translation [0 1.5 0] children [ Shape { appearance Appearance { material USE AGITATOR_SHAFT_MATERIAL } geometry Cylinder { height 3.0 radius 0.1 } } ] }
+          Transform { translation [0 0 0] rotation [0 1 0 0.785] children [ Shape { appearance Appearance { material USE AGITATOR_BLADE_MATERIAL } geometry Box { size 1.5 0.1 0.5 } } ] }
+          Transform { translation [0 0 0] rotation [0 1 0 2.356] children [ Shape { appearance Appearance { material USE AGITATOR_BLADE_MATERIAL } geometry Box { size 1.5 0.1 0.5 } } ] }
         ]
       }
 
       # --- LIQUID (Inside Reactor) ---
       DEF LIQUID Transform {
-        translation 0 -1 0
+        translation [0 -1 0]
         children [
           Shape {
             appearance Appearance {
@@ -110,45 +112,45 @@ X3D {
       }
 
       # --- PIPES and VALVES ---
-      DEF INLET_PIPE Transform { translation -2.0 2.0 0 rotation 0 0 1 1.57 children [ Valve { position 0 0 0.5 size 0.15 } Shape { appearance Appearance { material USE PIPE_MATERIAL } geometry Cylinder { height 1.0 radius 0.2 } } Transform { translation 0 0 0.5 children [ Shape { appearance Appearance { material USE PIPE_MATERIAL } geometry Sphere { radius 0.15 } } ] } ] }
+      DEF INLET_PIPE Transform { translation [-2.0 2.0 0] rotation [0 0 1 1.57] children [ Valve { position [0 0 0.5] size [0.15] } Shape { appearance Appearance { material USE PIPE_MATERIAL } geometry Cylinder { height 1.0 radius 0.2 } } Transform { translation [0 0 0.5] children [ Shape { appearance Appearance { material USE PIPE_MATERIAL } geometry Sphere { radius 0.15 } } ] } ] }
 
       # --- VALVE KNOB ---
       DEF VALVE_KNOB Transform {
-        translation -2.0 2.8 0
-        rotation 0 1 0 0
+        translation [-2.0 2.8 0]
+        rotation [0 1 0 0]
         children [ Shape { appearance Appearance { material USE PIPE_MATERIAL } geometry Sphere { radius 0.2 } } ]
       }
 
-      DEF OUTLET_PIPE Transform { translation 2.0 -2.0 0 rotation 0 0 1 1.57 children [ Valve { position 0 0 -0.6 size 0.15 } Shape { appearance Appearance { material USE PIPE_MATERIAL } geometry Cylinder { height 1.0 radius 0.2 } } Transform { translation 0 0 -0.6 children [ Shape { appearance Appearance { material USE PIPE_MATERIAL } geometry Sphere { radius 0.15 } } ] } ] }
+      DEF OUTLET_PIPE Transform { translation [2.0 -2.0 0] rotation [0 0 1 1.57] children [ Valve { position [0 0 -0.6] size [0.15] } Shape { appearance Appearance { material USE PIPE_MATERIAL } geometry Cylinder { height 1.0 radius 0.2 } } Transform { translation [0 0 -0.6] children [ Shape { appearance Appearance { material USE PIPE_MATERIAL } geometry Sphere { radius 0.15 } } ] } ] }
 
       # --- SENSORS ---
       DEF TEMP_SENSOR Transform {
-        translation 0 0 2.2
-        scale 1 1 1
+        translation [0 0 2.2]
+        scale [1 1 1]
         children [
           Shape { appearance Appearance { material USE SENSOR_MATERIAL } geometry Sphere { radius 0.2 } }
-          Transform { translation 0 0 -0.5 children [ Shape { appearance Appearance { material USE SENSOR_MATERIAL } geometry Cylinder { height 1.0 radius 0.05 } } ] }
+          Transform { translation [0 0 -0.5] children [ Shape { appearance Appearance { material USE SENSOR_MATERIAL } geometry Cylinder { height 1.0 radius 0.05 } } ] }
         ]
       }
 
       # Inline nodes are used to include other VRML files (housing, base, flange) into this main scene.
       # They are configured to point to Prince's repository as per original project structure.
-      DEF SENSOR_HOUSING Transform { translation 0 0 2.2 children [ Inline { url "https://raw.githubusercontent.com/Prince10107/ASimVR/main/housing.wrl" } ] }
+      DEF SENSOR_HOUSING Transform { translation [0 0 2.2] children [ Inline { url "https://raw.githubusercontent.com/Prince10107/ASimVR/main/housing.wrl" } ] }
 
       DEF PRESS_SENSOR Transform {
-        translation 0 2.7 0
-        scale 1 1 1
+        translation [0 2.7 0]
+        scale [1 1 1]
         children [ Shape { appearance Appearance { material USE SENSOR_MATERIAL } geometry Box { size 0.4 0.4 0.4 } } ]
       }
 
       # --- BASE ELEMENTS ---
-      DEF REACTOR_BASE Transform { translation 0 -2.7 0 children [ Shape { appearance Appearance { material USE BASE_MATERIAL } geometry Cylinder { height 0.4 radius 2.5 } } ] }
-      DEF REACTOR_BASE_DETAILED Transform { translation 0 -2.7 0 children [ Inline { url "https://raw.githubusercontent.com/Prince10107/ASimVR/main/base.wrl" } ] }
-      DEF FLANGE Transform { translation 0 -2.5 0 children [ Inline { url "https://raw.githubusercontent.com/Prince10107/ASimVR/main/flange.wrl" } ] }
+      DEF REACTOR_BASE Transform { translation [0 -2.7 0] children [ Shape { appearance Appearance { material USE BASE_MATERIAL } geometry Cylinder { height 0.4 radius 2.5 } } ] }
+      DEF REACTOR_BASE_DETAILED Transform { translation [0 -2.7 0] children [ Inline { url "https://raw.githubusercontent.com/Prince10107/ASimVR/main/base.wrl" } ] }
+      DEF FLANGE Transform { translation [0 -2.5 0] children [ Inline { url "https://raw.githubusercontent.com/Prince10107/ASimVR/main/flange.wrl" } ] }
 
       # --- VIEWPOINT & MISC ---
-      DEF INITIAL_VIEWPOINT Viewpoint { position 0 0 50.0 orientation 0 0 1 0 fieldOfView 0.785398 description "Initial View" }
-      DEF REACTOR_PROXIMITY ProximitySensor { size 10 10 10 center 0 0 0 }
+      DEF INITIAL_VIEWPOINT Viewpoint { position [0 0 50.0] orientation [0 0 1 0] fieldOfView 0.785398 description "Initial View" }
+      DEF REACTOR_PROXIMITY ProximitySensor { size [10 10 10] center [0 0 0] }
       DEF REACTOR_TRANSPARENCY_SWITCH Script { eventIn SFBool set_transparency eventOut SFFloat transparency_changed url "javascript: function set_transparency(value) { if (value) transparency_changed = 0.7; else transparency_changed = 0.0; }" }
 
       # --- ROUTING STATEMENTS (CRITICAL for Simulink Connectivity) ---
