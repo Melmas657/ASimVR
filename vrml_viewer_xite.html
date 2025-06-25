@@ -1,4 +1,4 @@
-!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -56,9 +56,12 @@
             opacity: 1;
         }
     </style>
-    <!-- Loading the X_ITE library from X3D.org's CDN. -->
-    <!-- This is the most reliable source to avoid MIME type errors. -->
-    <script src="https://x3d.org/x3d/runtime/x_ite_latest/x_ite.min.js"></script>
+    <!-- Loading the X_ITE library from jsDelivr CDN as an ES Module, as per official documentation (x_ite@11.5.11). -->
+    <script type="module">
+        import X3D from "https://cdn.jsdelivr.net/npm/x_ite@11.5.11/dist/x_ite.min.mjs";
+        // The X3D object doesn't need to be explicitly used here;
+        // its mere import ensures the custom element <x3d-canvas> is registered.
+    </script>
 </head>
 <body>
 
@@ -68,7 +71,7 @@
     <!-- The 'src' attribute MUST point to the raw GitHub URL of your main VRML file. -->
     <x3d-canvas id="vrmlViewer" src="https://raw.githubusercontent.com/Melmas657/ASimVR/main/model.wrl" antialias="true" showLog="false"></x3d-canvas>
 
-    <script>
+    <script type="module">
         // Function to display transient messages to the user
         const showMessage = (message, duration = 4000) => {
             const msgBox = document.getElementById('message-box');
