@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ASimVR CSTR Reactor 3D Viewer</title>
+    <title>ASimVR CSTR Reactor 3D Viewer (three.js)</title>
     <!-- Tailwind CSS CDN for modern styling -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* Custom CSS for layout and aesthetics, complementing Tailwind */
+        /* Custom CSS for layout and aesthetics */
         body {
             margin: 0;
             padding: 0;
@@ -21,20 +21,26 @@
             align-items: center;
             justify-content: center;
         }
-        /* Styling for the X_ITE VRML canvas itself */
-        x3d-canvas {
-            display: block;
+        #threejs-container {
             width: 95vw;
             max-width: 1000px;
             height: calc(100vh - 120px);
             border-radius: 12px;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
             background-color: #ffffff;
-            --x3d-canvas-background: transparent;
             margin-top: 20px;
             margin-bottom: 20px;
+            position: relative; /* For loading message */
         }
-        /* Styling for the transient message box */
+        #loading-message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 1.2em;
+            color: #555;
+            z-index: 10;
+        }
         #message-box {
             position: fixed;
             top: 20px;
@@ -56,20 +62,24 @@
             opacity: 1;
         }
     </style>
-    <!-- Loading the X_ITE library from jsDelivr CDN using 'defer', as per official documentation. -->
-    <!-- This is the most direct embedding method from the X_ITE documentation for .js files. -->
-    <script src="https://cdn.jsdelivr.net/npm/x_ite@11.5.11/dist/x_ite.min.js"></script>
+    <!-- Three.js Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- REQUIRED for VRMLoader.js: Chevrotain parser library -->
+    <script src="https://cdn.jsdelivr.net/npm/chevrotain@latest/lib/chevrotain.min.js"></script>
+    <!-- OrbitControls for camera interaction -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <!-- VRML Loader for Three.js -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/VRMLLoader.js"></script>
 </head>
 <body>
 
     <div id="message-box"></div>
-
-    <!-- Using the x3d-canvas element to load the VRML model. -->
-    <!-- The 'src' attribute MUST point to the raw GitHub URL of your main VRML file. -->
-    <x3d-canvas id="vrmlViewer" src="https://raw.githubusercontent.com/Melmas657/ASimVR/main/model.wrl" antialias="true" showLog="false"></x3d-canvas>
+    <div id="threejs-container">
+        <div id="loading-message">3D Model Loading...</div>
+    </div>
 
     <script>
-        // Function to display transient messages to the user
+        // Function to display transient messages
         const showMessage = (message, duration = 4000) => {
             const msgBox = document.getElementById('message-box');
             msgBox.textContent = message;
@@ -79,23 +89,82 @@
             }, duration);
         };
 
-        // Get the VRML viewer element
-        const vrmlViewer = document.getElementById('vrmlViewer');
+        let scene, camera, renderer, controls;
+        const container = document.getElementById('threejs-container');
+        const loadingMessage = document.getElementById('loading-message');
 
-        // Event listener for when the VRML model is successfully loaded
-        vrmlViewer.addEventListener('load', () => {
-            showMessage('VRML model loaded successfully! Use your mouse to navigate the 3D scene.', 5000);
-            console.log('X_ITE: VRML model loaded successfully.');
-        });
+        function init() {
+            // Scene
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0xEEEEEE); // Light grey background
 
-        // Event listener for errors during model loading
-        vrmlViewer.addEventListener('error', (event) => {
-            console.error('X_ITE: Error loading VRML model:', event);
-            showMessage('Error loading VRML model! Please ensure model.wrl is correctly structured and accessible on GitHub.', 8000);
-        });
+            // Camera
+            camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
+            camera.position.set(0, 0, 50); // Initial camera position, similar to VRML viewpoint
 
-        // Initial message when the page starts loading
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.setPixelRatio(window.devicePixelRatio); // For high-DPI screens
+            container.appendChild(renderer.domElement);
+
+            // OrbitControls for interaction
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true; // Smooth camera movement
+            controls.dampingFactor = 0.25;
+            controls.screenSpacePanning = false;
+            controls.maxPolarAngle = Math.PI / 2; // Prevent camera from going below ground
+
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.5); // Soft white light
+            scene.add(ambientLight);
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8); // Brighter light from one direction
+            directionalLight.position.set(10, 10, 5);
+            scene.add(directionalLight);
+
+            // VRML Loader
+            const loader = new THREE.VRMLLoader();
+            loader.load(
+                'https://raw.githubusercontent.com/Melmas657/ASimVR/main/model.wrl',
+                function (vrmlScene) {
+                    scene.add(vrmlScene);
+                    loadingMessage.style.display = 'none'; // Hide loading message
+                    showMessage('3D model successfully loaded! Use your mouse to navigate the 3D scene.', 5000);
+                    console.log('Three.js: VRML model loaded successfully.');
+                    animate(); // Start animation loop after model loads
+                },
+                function (xhr) {
+                    // Progress callback
+                    const progress = (xhr.loaded / xhr.total) * 100;
+                    loadingMessage.textContent = `Loading: ${Math.round(progress)}%`;
+                },
+                function (error) {
+                    // Error callback
+                    console.error('Three.js: Error loading VRML model:', error);
+                    loadingMessage.textContent = 'Model failed to load. An error occurred.';
+                    showMessage('An error occurred while loading the 3D model! Please check the console.', 8000);
+                }
+            );
+
+            // Handle window resize
+            window.addEventListener('resize', onWindowResize, false);
+        }
+
+        function onWindowResize() {
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update(); // Only required if controls.enableDamping or controls.autoRotate are set to true
+            renderer.render(scene, camera);
+        }
+
+        // Initialize on window load
         window.onload = function() {
+            init();
             showMessage('Initializing 3D viewer and loading reactor model...', 5000);
         };
     </script>
