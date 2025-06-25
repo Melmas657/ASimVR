@@ -10,6 +10,9 @@
         /* Custom CSS for layout and aesthetics, complementing Tailwind */
         body {
             margin: 0;
+            padding: 0; /* Added padding: 0 for full control */
+            height: 100vh; /* Use 100vh for full viewport height */
+            width: 100vw; /* Use 100vw for full viewport width */
             overflow: hidden; /* Hide scrollbar for a clean look */
             font-family: 'Inter', sans-serif; /* Recommended font */
             background-color: #f0f0f0; /* Light grey background */
@@ -17,7 +20,6 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            min-height: 100vh; /* Ensure full viewport height */
         }
         /* Styling for the X_ITE VRML canvas itself */
         x3d-canvas {
@@ -28,7 +30,7 @@
             border-radius: 12px; /* Rounded corners for modern look */
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15); /* Pronounced shadow for depth */
             background-color: #ffffff; /* Canvas background */
-            /* Override X_ITE's own default styles if necessary */
+            /* Crucial: Override X_ITE's own default background for transparent background */
             --x3d-canvas-background: transparent;
             margin-top: 20px; /* Space from top */
             margin-bottom: 20px; /* Space from bottom */
@@ -57,11 +59,8 @@
     </style>
     <!-- Load X_ITE library from CDN as an ES module -->
     <!-- X_ITE is a modern VRML/X3D viewer for web browsers. -->
-    <script type="module">
-        import X3D from "https://cdn.jsdelivr.net/npm/x_ite@11.5.10/dist/x_ite.min.mjs";
-        // The X3D object doesn't need to be explicitly used here;
-        // its mere import ensures the custom element <x3d-canvas> is registered.
-    </script>
+    <!-- Added onerror to gracefully handle loading failure for the script itself -->
+    <script type="module" src="https://cdn.jsdelivr.net/npm/x_ite@11.5.10/dist/x_ite.min.mjs" onerror="alert('Error loading X_ITE library. Please check your internet connection or the script URL.');"></script>
 </head>
 <body>
 
@@ -69,8 +68,7 @@
 
     <!-- Use the x3d-canvas element to load the VRML model -->
     <!-- IMPORTANT: The 'src' attribute MUST point to the raw GitHub URL of your main VRML file. -->
-    <!-- Assuming your main VRML file is named 'reactor.wrl' and is in the 'main' branch of your repo. -->
-  <x3d-canvas id="vrmlViewer" src="https://raw.githubusercontent.com/Melmas657/ASimVR/main/model.wrl" antialias="true" showLog="false"></x3d-canvas>
+    <x3d-canvas id="vrmlViewer" src="https://raw.githubusercontent.com/Melmas657/ASimVR/main/model.wrl" antialias="true" showLog="false"></x3d-canvas>
 
     <script type="module">
         // Function to display transient messages to the user
@@ -78,6 +76,7 @@
             const msgBox = document.getElementById('message-box');
             msgBox.textContent = message;
             msgBox.classList.add('show');
+            // Hide message after duration
             setTimeout(() => {
                 msgBox.classList.remove('show');
             }, duration);
@@ -88,14 +87,14 @@
 
         // Event listener for when the VRML model is successfully loaded
         vrmlViewer.addEventListener('load', () => {
-            showMessage('VRML model loaded successfully! Use your mouse to navigate.', 5000);
-            console.log('X_ITE: VRML model loaded.');
+            showMessage('VRML model loaded successfully! Use your mouse to navigate the 3D scene.', 5000);
+            console.log('X_ITE: VRML model loaded successfully.');
         });
 
         // Event listener for errors during model loading
         vrmlViewer.addEventListener('error', (event) => {
             console.error('X_ITE: Error loading VRML model:', event);
-            showMessage('Error loading VRML model! Please check the file path, format, and GitHub accessibility.', 8000); // More descriptive error
+            showMessage('Error loading VRML model! Please ensure model.wrl is correctly structured and accessible on GitHub.', 8000); // More descriptive error
         });
 
         // Initial message when the page starts loading
