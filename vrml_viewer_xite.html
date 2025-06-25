@@ -57,16 +57,16 @@
         }
     </style>
     <!-- Loading the X_ITE library from CDN. -->
-    <!-- THIS IS THE CHANGE: Removed 'type="module"' and using '.js' instead of '.mjs'. -->
-    <!-- This can resolve loading issues that might occur with module imports in certain browsers or CDN configurations. -->
-    <script src="https://cdn.jsdelivr.net/npm/x_ite@1.15.10/dist/x_ite.min.js"></script>
+    <!-- PREVIOUS ISSUE: MIME type mismatch error when loading from jsdelivr. -->
+    <!-- CORRECTION: Loading the library from X3D.org's own CDN, which is typically more stable and provides correct MIME types. -->
+    <script src="https://x3d.org/x3d/runtime/x_ite_latest/x_ite.min.js"></script>
 </head>
 <body>
 
     <div id="message-box"></div>
 
     <!-- Using the x3d-canvas element to load the VRML model. -->
-    <!-- IMPORTANT: The 'src' attribute MUST point to the raw GitHub URL of your main VRML file. -->
+    <!-- The 'src' attribute MUST point to the raw GitHub URL of your main VRML file. -->
     <x3d-canvas id="vrmlViewer" src="https://raw.githubusercontent.com/Melmas657/ASimVR/main/model.wrl" antialias="true" showLog="false"></x3d-canvas>
 
     <script>
