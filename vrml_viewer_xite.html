@@ -1,51 +1,95 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1.0">
-  <title>SimuNik – 3D VRML Viewer</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SimuNik – VRML Reactor Model</title>
 
-  <!-- Tailwind CDN – OK for development -->
+  <!-- Tailwind CDN (fine for development) -->
   <script src="https://cdn.tailwindcss.com"></script>
 
-  <!-- ✅ NEW: working X_ITE CDN -->
+  <!-- Working X_ITE build (11.5.11) -->
   <script defer src="https://cdn.jsdelivr.net/npm/x_ite@11.5.11/dist/x_ite.min.js"></script>
 
   <!-- Silence the favicon 404 -->
-  <link rel="icon" href="data:,">
-</head>
-<body class="bg-gray-900 text-white flex flex-col items-center justify-center min-h-screen gap-4">
+  <link rel="icon" href="data:," />
 
+  <style>
+    body{ @apply bg-gray-900 text-white flex flex-col items-center
+                 justify-center min-h-screen gap-4; }
+    #viewerWrapper{ width:90vw;max-width:1000px;height:70vh;
+                    border:2px solid rgb(55,65,81); /* gray-700 */
+                    border-radius:0.75rem;overflow:hidden; }
+  </style>
+</head>
+<body>
   <h1 class="text-3xl font-bold">SimuNik – VRML Reactor Model</h1>
   <div id="msg" class="text-lime-400"></div>
-  <div id="x3dHost" class="w-[90vw] max-w-[1000px] h-[70vh] border-2 border-gray-700 rounded-lg overflow-hidden"></div>
+
+  <!-- Host for the <x3d-canvas> -->
+  <div id="viewerWrapper">
+    <!-- The canvas is injected by JS after X_ITE is ready -->
+  </div>
+
+  <!-- ────────────  Embedded / Fixed VRML scene  ──────────── -->
+  <script id="ReactorScene" type="model/x3d+vrml">
+#VRML V2.0 utf8
+
+# A simple demo scene that exposes a color field via a PROTO.
+# This fixes the “Unknown node type or proto 'field'” error.
+
+PROTO ReactorColorSwitcher [
+  field SFColor reactor_color_input_simulink 0.6 0.6 0.6
+] {
+  Shape {
+    appearance Appearance {
+      material Material {
+        diffuseColor IS reactor_color_input_simulink
+      }
+    }
+    geometry Box { size 1 1 1 }
+  }
+}
+
+Transform {
+  translation 0 0 0
+  children [
+    ReactorColorSwitcher {
+      reactor_color_input_simulink 0 1 0   # green
+    }
+  ]
+}
+  </script>
+  <!-- ──────────────────────────────────────────────────────── -->
 
   <script>
-    function flash(txt, ms = 5000) {
+    /** Show transient status messages */
+    function flash(text, ms = 5000){
       const m = document.getElementById('msg');
-      m.textContent = txt;
-      if (ms) setTimeout(() => m.textContent = '', ms);
+      m.textContent = text;
+      if(ms) setTimeout(()=>m.textContent='', ms);
     }
 
+    /* Build the viewer once everything (incl. X_ITE) is loaded */
     window.addEventListener('load', () => {
-      flash('Initializing viewer…');
+      flash('Initializing 3D viewer…');
 
+      // create canvas and point it to the embedded VRML script
       const canvas = document.createElement('x3d-canvas');
-      canvas.id = 'vrmlViewer';
-      canvas.setAttribute('src', 'https://raw.githubusercontent.com/Melmas657/ASimVR/main/model.wrl');
+      canvas.setAttribute('src', '#ReactorScene');
       canvas.setAttribute('antialias', 'true');
       canvas.setAttribute('showLog', 'false');
-      canvas.style.width = '100%';
+      canvas.style.width  = '100%';
       canvas.style.height = '100%';
 
-      document.getElementById('x3dHost').appendChild(canvas);
+      document.getElementById('viewerWrapper').appendChild(canvas);
 
       canvas.addEventListener('load', () =>
-        flash('✅ Model loaded – use mouse to explore!', 7000));
+        flash('✅ Scene loaded – drag to explore!', 7000));
 
       canvas.addEventListener('error', e => {
-        console.error('X_ITE load error', e);
-        flash('❌ Could not load model.wrl – check URL or VRML syntax.', 8000);
+        console.error('X_ITE load error:', e);
+        flash('❌ Failed to load VRML scene. Check console for details.', 8000);
       });
     });
   </script>
