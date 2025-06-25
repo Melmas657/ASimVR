@@ -57,49 +57,48 @@
             opacity: 1;
         }
     </style>
-    <!-- Load X_ITE library from CDN as an ES module -->
-    <!-- X_ITE is a modern VRML/X3D viewer for web browsers. -->
-    <!-- Added onerror to gracefully handle loading failure for the script itself -->
-    <script type="module" src="https://cdn.jsdelivr.net/npm/x_ite@11.5.10/dist/x_ite.min.mjs" onerror="alert('Error loading X_ITE library. Please check your internet connection or the script URL.');"></script>
+    <!-- X_ITE kütüphanesini CDN'den yüklüyoruz. -->
+    <!-- Bu versiyon daha kararlı ve genel VRML 2.0 uyumluluğu için daha iyidir. -->
+    <script src="https://cdn.jsdelivr.net/npm/x_ite@1.15.10/dist/x_ite.min.js"></script>
 </head>
 <body>
 
     <div id="message-box"></div>
 
-    <!-- Use the x3d-canvas element to load the VRML model -->
-    <!-- IMPORTANT: The 'src' attribute MUST point to the raw GitHub URL of your main VRML file. -->
+    <!-- x3d-canvas elementini kullanarak VRML modelini yüklüyoruz. -->
+    <!-- 'src' özniteliği, ana VRML dosyanın ham GitHub URL'sini işaret etmelidir. -->
+    <!-- model.wrl dosyası artık X3D etiketi ile sarmalandığı için bu şekilde yüklenebilir. -->
     <x3d-canvas id="vrmlViewer" src="https://raw.githubusercontent.com/Melmas657/ASimVR/main/model.wrl" antialias="true" showLog="false"></x3d-canvas>
 
-    <script type="module">
-        // Function to display transient messages to the user
-        const showMessage = (message, duration = 4000) => { // Increased duration
+    <script>
+        // Mesajları kullanıcıya geçici olarak göstermek için fonksiyon
+        const showMessage = (message, duration = 4000) => {
             const msgBox = document.getElementById('message-box');
             msgBox.textContent = message;
             msgBox.classList.add('show');
-            // Hide message after duration
             setTimeout(() => {
                 msgBox.classList.remove('show');
             }, duration);
         };
 
-        // Get the VRML viewer element
+        // VRML görüntüleyici elementini alıyoruz
         const vrmlViewer = document.getElementById('vrmlViewer');
 
-        // Event listener for when the VRML model is successfully loaded
+        // VRML modeli başarıyla yüklendiğinde olay dinleyicisi
         vrmlViewer.addEventListener('load', () => {
-            showMessage('VRML model loaded successfully! Use your mouse to navigate the 3D scene.', 5000);
-            console.log('X_ITE: VRML model loaded successfully.');
+            showMessage('VRML modeli başarıyla yüklendi! 3D sahnede gezinmek için fareni kullan.', 5000);
+            console.log('X_ITE: VRML modeli başarıyla yüklendi.');
         });
 
-        // Event listener for errors during model loading
+        // Model yüklenirken hata oluştuğunda olay dinleyicisi
         vrmlViewer.addEventListener('error', (event) => {
-            console.error('X_ITE: Error loading VRML model:', event);
-            showMessage('Error loading VRML model! Please ensure model.wrl is correctly structured and accessible on GitHub.', 8000); // More descriptive error
+            console.error('X_ITE: VRML modeli yüklenirken hata:', event);
+            showMessage('VRML modeli yüklenirken hata oluştu! Lütfen model.wrl dosyasının doğru şekilde güncellendiğinden ve GitHub\'da erişilebilir olduğundan emin ol.', 8000);
         });
 
-        // Initial message when the page starts loading
+        // Sayfa yüklenmeye başladığında ilk mesaj
         window.onload = function() {
-            showMessage('Initializing 3D viewer and loading reactor model...', 5000);
+            showMessage('3D görüntüleyici başlatılıyor ve reaktör modeli yükleniyor...', 5000);
         };
     </script>
 </body>
