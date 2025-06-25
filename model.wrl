@@ -121,6 +121,7 @@ X3D {
         children [ Shape { appearance Appearance { material USE PIPE_MATERIAL } geometry Sphere { radius 0.2 } } ]
       }
 
+      # --- OUTLET PIPE ---
       DEF OUTLET_PIPE Transform { translation [2.0 -2.0 0.0] rotation [0.0 0.0 1.0 1.57] children [ Valve { position [0.0 0.0 -0.6] size [0.15] } Shape { appearance Appearance { material USE PIPE_MATERIAL } geometry Cylinder { height 1.0 radius 0.2 } } Transform { translation [0.0 0.0 -0.6] children [ Shape { appearance Appearance { material USE PIPE_MATERIAL } geometry Sphere { radius 0.15 } } ] } ] }
 
       # --- SENSORS ---
