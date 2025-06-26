@@ -1,157 +1,172 @@
-#VRML V2.0 utf8
-
-# ASimVR Polymerization CSTR Reactor Model
-# This VRML file defines the 3D geometry and dynamic properties
-# of a Continuous Stirred-Tank Reactor (CSTR) for polymerization.
-# It is designed to be controlled and animated by Simulink via VR Sink.
-
-# Component and Profile declarations (standard for VRML 2.0)
-# These are typically uncommented in advanced VRML applications, but can remain commented
-# for basic viewing if not specifically needed by the viewer/plugins.
-# component USE_RigidBodies 1
-# component USE_Shaders 1
-# component USE_Scripting 1
-# profile Interactive
-
-# --- CRITICAL FIX: ENTIRE VRML CONTENT WRAPPED IN AN X3D TAG ---
-# This wrapper is essential for web viewers to correctly interpret the scene.
-# --- IMPORTANT: TOP-LEVEL 'field' DECLARATIONS AND ROUTES HAVE BEEN REMOVED ---
-# Standard web VRML/X3D parsers do not support MATLAB's top-level 'field' extension.
-# Allan will now directly target properties of nodes like LIQUID.translation from Simulink.
-X3D {
-  scene DEF SceneRoot Scene {
-    children [
-      WorldInfo {
-        title "ASimVR Polymerization CSTR Reactor"
-        info [ "Designed for dynamic simulation with MATLAB/Simulink VR Sink." ]
-      }
-
-      # --- Common PROTO Definitions ---
-      PROTO Valve [ # Reusable Valve component
-        field SFVec3f position [0.0 0.0 0.0]
-        field SFFloat size [0.15]
-      ]
-      {
-        Transform { translation IS position children [ Shape { appearance Appearance { material Material { diffuseColor [0.9 0.5 0.1] specularColor [1.0 1.0 1.0] shininess 0.2 } } geometry Sphere { radius IS size } } ] }
-      }
-
-      # --- Material Definitions ---
-      DEF REACTOR_BODY_MATERIAL Material { diffuseColor [0.6 0.8 0.9] specularColor [0.8 0.8 0.8] shininess 0.1 }
-      DEF PIPE_MATERIAL Material { diffuseColor [0.4 0.4 0.4] specularColor [0.7 0.7 0.7] shininess 0.1 }
-      DEF AGITATOR_BLADE_MATERIAL Material { diffuseColor [0.8 0.2 0.2] specularColor [0.9 0.9 0.9] shininess 0.1 }
-      DEF AGITATOR_SHAFT_MATERIAL Material { diffuseColor [0.9 0.9 0.0] specularColor [0.9 0.9 0.9] shininess 0.1 }
-      DEF SENSOR_MATERIAL Material { diffuseColor [0.2 0.7 0.2] specularColor [0.8 0.8 0.8] shininess 0.1 }
-      DEF BASE_MATERIAL Material { diffuseColor [0.3 0.3 0.3] specularColor [0.6 0.6 0.6] shininess 0.1 }
-
-      # --- Basic Geometries ---
-      DEF DRAIN_CONE Transform { translation [0.0 -3.3 0.0] children [ Shape { appearance Appearance { material USE PIPE_MATERIAL } } geometry Cone { bottomRadius 0.4 height 0.8 } ] }
-
-      # --- PROTO Definition for Dynamic Reactor Body ---
-      # This PROTO's fields are valid because they are defined WITHIN the PROTO scope.
-      PROTO DynamicReactorBody [
-        field SFColor reactor_color_input [0.6 0.8 0.9]
-        field SFFloat reactor_transparency_input [0.0]
-      ]
-      {
-        Transform {
-          translation [0.0 0.0 0.0]
-          children [
-            Shape {
-              appearance Appearance {
-                material DEF DYNAMIC_REACTOR_BODY_MATERIAL_NODE Material {
-                  diffuseColor IS reactor_color_input
-                  transparency IS reactor_transparency_input
-                  specularColor [0.8 0.8 0.8] shininess 0.1
-                }
-              }
-              geometry Cylinder { height 5.0 radius 2.0 }
-            }
-          ]
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ASimVR CSTR Reactor 3D Viewer (three.js)</title>
+    <!-- Tailwind CSS CDN for modern styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom CSS for layout and aesthetics */
+        body {
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f0f0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
         }
-      }
+        #threejs-container {
+            width: 95vw;
+            max-width: 1000px;
+            height: calc(100vh - 120px);
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+            background-color: #ffffff;
+            margin-top: 20px;
+            margin-bottom: 20px;
+            position: relative; /* For loading message */
+        }
+        #loading-message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 1.2em;
+            color: #555;
+            z-index: 10;
+        }
+        #message-box {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(255, 255, 255, 0.95);
+            padding: 12px 25px;
+            border-radius: 10px;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15);
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.6s ease-in-out;
+            font-size: 1em;
+            color: #333;
+            text-align: center;
+            max-width: 90vw;
+        }
+        #message-box.show {
+            opacity: 1;
+        }
+    </style>
+    <!-- Three.js Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- REQUIRED for VRMLoader.js: Chevrotain parser library -->
+    <script src="https://cdn.jsdelivr.net/npm/chevrotain@latest/lib/chevrotain.min.js"></script>
+    <!-- OrbitControls for camera interaction -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <!-- VRML Loader for Three.js -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/VRMLLoader.js"></script>
+</head>
+<body>
 
-      # --- REACTOR BODY INSTANTIATION ---
-      # This instance will be targeted directly by Simulink using REACTOR_BODY_INSTANCE.reactor_color_input
-      # and REACTOR_BODY_INSTANCE.reactor_transparency_input.
-      DEF REACTOR_BODY_INSTANCE DynamicReactorBody { }
+    <div id="message-box"></div>
+    <div id="threejs-container">
+        <div id="loading-message">3D Model Loading...</div>
+    </div>
 
-      # --- AGITATOR (Mixer) ---
-      # This instance will be targeted directly by Simulink for rotation (AGITATOR.rotation).
-      DEF AGITATOR Transform {
-        translation [0.0 1.0 0.0]
-        rotation [0.0 1.0 0.0 0.0] # Default rotation
-        children [
-          Transform { translation [0.0 1.5 0.0] children [ Shape { appearance Appearance { material USE AGITATOR_SHAFT_MATERIAL } geometry Cylinder { height 3.0 radius 0.1 } } ] }
-          Transform { translation [0.0 0.0 0.0] rotation [0.0 1.0 0.0 0.785] children [ Shape { appearance Appearance { material USE AGITATOR_BLADE_MATERIAL } geometry Box { size [1.5 0.1 0.5] } } ] }
-          Transform { translation [0.0 0.0 0.0] rotation [0.0 1.0 0.0 2.356] children [ Shape { appearance Appearance { material USE AGITATOR_BLADE_MATERIAL } geometry Box { size [1.5 0.1 0.5] } } ] }
-        ]
-      }
+    <script>
+        // Function to display transient messages
+        const showMessage = (message, duration = 4000) => {
+            const msgBox = document.getElementById('message-box');
+            msgBox.textContent = message;
+            msgBox.classList.add('show');
+            setTimeout(() => {
+                msgBox.classList.remove('show');
+            }, duration);
+        };
 
-      # --- LIQUID (Inside Reactor) ---
-      # This instance will be targeted directly by Simulink for translation (LIQUID.translation)
-      # and transparency (LIQUID_MATERIAL_NODE.transparency).
-      DEF LIQUID Transform {
-        translation [0.0 -1.0 0.0] # Default position
-        children [
-          Shape {
-            appearance Appearance {
-              material DEF LIQUID_MATERIAL_NODE Material {
-                diffuseColor [0.2 0.6 1.0]
-                transparency 0.5 # Default transparency
-              }
-            }
-            geometry Cylinder { height 2.0 radius 1.9 }
-          ]
-        ]
-      }
+        let scene, camera, renderer, controls;
+        const container = document.getElementById('threejs-container');
+        const loadingMessage = document.getElementById('loading-message');
 
-      # --- PIPES and VALVES ---
-      DEF INLET_PIPE Transform { translation [-2.0 2.0 0.0] rotation [0.0 0.0 1.0 1.57] children [ Valve { position [0.0 0.0 0.5] size [0.15] } Shape { appearance Appearance { material USE PIPE_MATERIAL } geometry Cylinder { height 1.0 radius 0.2 } } Transform { translation [0.0 0.0 0.5] children [ Shape { appearance Appearance { material USE PIPE_MATERIAL } geometry Sphere { radius 0.15 } } ] } ] }
+        function init() {
+            // Scene
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0xEEEEEE); // Light grey background
 
-      # --- VALVE KNOB ---
-      # This instance will be targeted directly by Simulink for rotation/scale (VALVE_KNOB.rotation).
-      DEF VALVE_KNOB Transform {
-        translation [-2.0 2.8 0.0]
-        rotation [0.0 1.0 0.0 0.0] # Default rotation
-        children [ Shape { appearance Appearance { material USE PIPE_MATERIAL } geometry Sphere { radius 0.2 } } ]
-      }
+            // Camera
+            camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
+            camera.position.set(0, 0, 50); // Initial camera position, similar to VRML viewpoint
 
-      # --- OUTLET PIPE ---
-      DEF OUTLET_PIPE Transform { translation [2.0 -2.0 0.0] rotation [0.0 0.0 1.0 1.57] children [ Valve { position [0.0 0.0 -0.6] size [0.15] } Shape { appearance Appearance { material USE PIPE_MATERIAL } geometry Cylinder { height 1.0 radius 0.2 } } Transform { translation [0.0 0.0 -0.6] children [ Shape { appearance Appearance { material USE PIPE_MATERIAL } geometry Sphere { radius 0.15 } } ] } ] }
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.setPixelRatio(window.devicePixelRatio); // For high-DPI screens
+            container.appendChild(renderer.domElement);
 
-      # --- SENSORS ---
-      # These instances will be targeted directly by Simulink for scale (TEMP_SENSOR.scale, PRESS_SENSOR.scale).
-      DEF TEMP_SENSOR Transform {
-        translation [0.0 0.0 2.2]
-        scale [1.0 1.0 1.0] # Default scale
-        children [
-          Shape { appearance Appearance { material USE SENSOR_MATERIAL } geometry Sphere { radius 0.2 } }
-          Transform { translation [0.0 0.0 -0.5] children [ Shape { appearance Appearance { material USE SENSOR_MATERIAL } geometry Cylinder { height 1.0 radius 0.05 } } ] }
-        ]
-      }
+            // OrbitControls for interaction
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true; // Smooth camera movement
+            controls.dampingFactor = 0.25;
+            controls.screenSpacePanning = false;
+            controls.maxPolarAngle = Math.PI / 2; // Prevent camera from going below ground
 
-      # Inline nodes are used to include other VRML files (housing, base, flange) into this main scene.
-      # They are configured to point to Prince's repository as per original project structure.
-      DEF SENSOR_HOUSING Transform { translation [0.0 0.0 2.2] children [ Inline { url "https://raw.githubusercontent.com/Prince10107/ASimVR/main/housing.wrl" } ] }
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.5); // Soft white light
+            scene.add(ambientLight);
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8); // Brighter light from one direction
+            directionalLight.position.set(10, 10, 5);
+            scene.add(directionalLight);
 
-      DEF PRESS_SENSOR Transform {
-        translation [0.0 2.7 0.0]
-        scale [1.0 1.0 1.0] # Default scale
-        children [ Shape { appearance Appearance { material USE SENSOR_MATERIAL } geometry Box { size [0.4 0.4 0.4] } } ]
-      }
+            // VRML Loader
+            const loader = new THREE.VRMLLoader();
+            loader.load(
+                'https://raw.githubusercontent.com/Melmas657/ASimVR/main/model.wrl',
+                function (vrmlScene) {
+                    scene.add(vrmlScene);
+                    loadingMessage.style.display = 'none'; // Hide loading message
+                    showMessage('3D model successfully loaded! Use your mouse to navigate the 3D scene.', 5000);
+                    console.log('Three.js: VRML model loaded successfully.');
+                    animate(); // Start animation loop after model loads
+                },
+                function (xhr) {
+                    // Progress callback
+                    const progress = (xhr.loaded / xhr.total) * 100;
+                    loadingMessage.textContent = `Loading: ${Math.round(progress)}%`;
+                },
+                function (error) {
+                    // Error callback
+                    console.error('Three.js: Error loading VRML model:', error);
+                    loadingMessage.textContent = 'Model failed to load. An error occurred.';
+                    showMessage('An error occurred while loading the 3D model! Please check the console.', 8000);
+                }
+            );
 
-      # --- BASE ELEMENTS ---
-      DEF REACTOR_BASE Transform { translation [0.0 -2.7 0.0] children [ Shape { appearance Appearance { material USE BASE_MATERIAL } geometry Cylinder { height 0.4 radius 2.5 } } ] }
-      DEF REACTOR_BASE_DETAILED Transform { translation [0.0 -2.7 0.0] children [ Inline { url "https://raw.githubusercontent.com/Prince10107/ASimVR/main/base.wrl" } ] }
-      DEF FLANGE Transform { translation [0.0 -2.5 0.0] children [ Inline { url "https://raw.githubusercontent.com/Prince10107/ASimVR/main/flange.wrl" } ] }
+            // Handle window resize
+            window.addEventListener('resize', onWindowResize, false);
+        }
 
-      # --- VIEWPOINT & MISC ---
-      DEF INITIAL_VIEWPOINT Viewpoint { position [0.0 0.0 50.0] orientation [0.0 0.0 1.0 0.0] fieldOfView 0.785398 description "Initial View" }
-      DEF REACTOR_PROXIMITY ProximitySensor { size [10.0 10.0 10.0] center [0.0 0.0 0.0] }
-      DEF REACTOR_TRANSPARENCY_SWITCH Script { eventIn SFBool set_transparency eventOut SFFloat transparency_changed url "javascript: function set_transparency(value) { if (value) transparency_changed = 0.7; else transparency_changed = 0.0; }" }
+        function onWindowResize() {
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+        }
 
-      # --- ROUTING STATEMENTS (THESE WERE REMOVED AS TOP-LEVEL FIELDS ARE GONE) ---
-      # No more ROUTES here, as Simulink will directly target node properties.
-    ]
-  }
-}
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update(); // Only required if controls.enableDamping or controls.autoRotate are set to true
+            renderer.render(scene, camera);
+        }
+
+        // Initialize on window load
+        window.onload = function() {
+            init();
+            showMessage('Initializing 3D viewer and loading reactor model...', 5000);
+        };
+    </script>
+</body>
+</html>
