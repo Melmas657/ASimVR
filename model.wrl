@@ -14,9 +14,10 @@
 # profile Interactive
 
 # --- CRITICAL FIX: ENTIRE VRML CONTENT WRAPPED IN AN X3D TAG ---
-# This wrapper is essential for X_ITE viewer in an HTML context to correctly
-# interpret 'field' definitions at the top-level of the scene.
-# It resolves the "Unknown node type or proto 'field'" error.
+# This wrapper is essential for web viewers to correctly interpret the scene.
+# --- IMPORTANT: TOP-LEVEL 'field' DECLARATIONS AND ROUTES HAVE BEEN REMOVED ---
+# Standard web VRML/X3D parsers do not support MATLAB's top-level 'field' extension.
+# Allan will now directly target properties of nodes like LIQUID.translation from Simulink.
 X3D {
   scene DEF SceneRoot Scene {
     children [
@@ -24,19 +25,6 @@ X3D {
         title "ASimVR Polymerization CSTR Reactor"
         info [ "Designed for dynamic simulation with MATLAB/Simulink VR Sink." ]
       }
-
-      # --- TOP-LEVEL FIELDS (Inputs from Simulink via VR Sink) ---
-      # CRITICAL CORRECTION FOR "Expected ']'" ERROR:
-      # All SFColor, SFFloat, SFVec3f, SFRotation default values are NOW EXPLICITLY AND CONSISTENTLY
-      # enclosed in square brackets [ ]. This is to satisfy the strictest X3D parser requirements.
-      field SFColor reactor_color_input_simulink [0.6 0.8 0.9]      # Controls reactor body color (default: light blue)
-      field SFFloat reactor_transparency_input_simulink [0.0]     # Controls reactor body transparency (default: opaque)
-      field SFVec3f liquid_level_input_simulink [0.0 -1.0 0.0]          # Controls liquid level/position (default: mid-level) - added .0 for floats
-      field SFFloat liquid_transparency_input_simulink [0.5]     # Controls liquid transparency (default: semi-transparent)
-      field SFRotation agitator_rotation_input_simulink [0.0 1.0 0.0 0.0] # Controls agitator rotation (default: no rotation) - added .0 for floats
-      field SFRotation valve_knob_rotation_input_simulink [0.0 1.0 0.0 0.0] # Controls valve knob rotation (default: no rotation) - added .0 for floats
-      field SFVec3f temp_sensor_scale_input_simulink [1.0 1.0 1.0]      # Controls temperature sensor scale (default: original size) - added .0 for floats
-      field SFVec3f press_sensor_scale_input_simulink [1.0 1.0 1.0]     # Controls pressure sensor scale (default: original size) - added .0 for floats
 
       # --- Common PROTO Definitions ---
       PROTO Valve [ # Reusable Valve component
@@ -59,6 +47,7 @@ X3D {
       DEF DRAIN_CONE Transform { translation [0.0 -3.3 0.0] children [ Shape { appearance Appearance { material USE PIPE_MATERIAL } } geometry Cone { bottomRadius 0.4 height 0.8 } ] }
 
       # --- PROTO Definition for Dynamic Reactor Body ---
+      # This PROTO's fields are valid because they are defined WITHIN the PROTO scope.
       PROTO DynamicReactorBody [
         field SFColor reactor_color_input [0.6 0.8 0.9]
         field SFFloat reactor_transparency_input [0.0]
@@ -82,12 +71,15 @@ X3D {
       }
 
       # --- REACTOR BODY INSTANTIATION ---
+      # This instance will be targeted directly by Simulink using REACTOR_BODY_INSTANCE.reactor_color_input
+      # and REACTOR_BODY_INSTANCE.reactor_transparency_input.
       DEF REACTOR_BODY_INSTANCE DynamicReactorBody { }
 
       # --- AGITATOR (Mixer) ---
+      # This instance will be targeted directly by Simulink for rotation (AGITATOR.rotation).
       DEF AGITATOR Transform {
         translation [0.0 1.0 0.0]
-        rotation [0.0 1.0 0.0 0.0]
+        rotation [0.0 1.0 0.0 0.0] # Default rotation
         children [
           Transform { translation [0.0 1.5 0.0] children [ Shape { appearance Appearance { material USE AGITATOR_SHAFT_MATERIAL } geometry Cylinder { height 3.0 radius 0.1 } } ] }
           Transform { translation [0.0 0.0 0.0] rotation [0.0 1.0 0.0 0.785] children [ Shape { appearance Appearance { material USE AGITATOR_BLADE_MATERIAL } geometry Box { size [1.5 0.1 0.5] } } ] }
@@ -96,18 +88,20 @@ X3D {
       }
 
       # --- LIQUID (Inside Reactor) ---
+      # This instance will be targeted directly by Simulink for translation (LIQUID.translation)
+      # and transparency (LIQUID_MATERIAL_NODE.transparency).
       DEF LIQUID Transform {
-        translation [0.0 -1.0 0.0]
+        translation [0.0 -1.0 0.0] # Default position
         children [
           Shape {
             appearance Appearance {
               material DEF LIQUID_MATERIAL_NODE Material {
                 diffuseColor [0.2 0.6 1.0]
-                transparency 0.5
+                transparency 0.5 # Default transparency
               }
             }
             geometry Cylinder { height 2.0 radius 1.9 }
-          }
+          ]
         ]
       }
 
@@ -115,9 +109,10 @@ X3D {
       DEF INLET_PIPE Transform { translation [-2.0 2.0 0.0] rotation [0.0 0.0 1.0 1.57] children [ Valve { position [0.0 0.0 0.5] size [0.15] } Shape { appearance Appearance { material USE PIPE_MATERIAL } geometry Cylinder { height 1.0 radius 0.2 } } Transform { translation [0.0 0.0 0.5] children [ Shape { appearance Appearance { material USE PIPE_MATERIAL } geometry Sphere { radius 0.15 } } ] } ] }
 
       # --- VALVE KNOB ---
+      # This instance will be targeted directly by Simulink for rotation/scale (VALVE_KNOB.rotation).
       DEF VALVE_KNOB Transform {
         translation [-2.0 2.8 0.0]
-        rotation [0.0 1.0 0.0 0.0]
+        rotation [0.0 1.0 0.0 0.0] # Default rotation
         children [ Shape { appearance Appearance { material USE PIPE_MATERIAL } geometry Sphere { radius 0.2 } } ]
       }
 
@@ -125,9 +120,10 @@ X3D {
       DEF OUTLET_PIPE Transform { translation [2.0 -2.0 0.0] rotation [0.0 0.0 1.0 1.57] children [ Valve { position [0.0 0.0 -0.6] size [0.15] } Shape { appearance Appearance { material USE PIPE_MATERIAL } geometry Cylinder { height 1.0 radius 0.2 } } Transform { translation [0.0 0.0 -0.6] children [ Shape { appearance Appearance { material USE PIPE_MATERIAL } geometry Sphere { radius 0.15 } } ] } ] }
 
       # --- SENSORS ---
+      # These instances will be targeted directly by Simulink for scale (TEMP_SENSOR.scale, PRESS_SENSOR.scale).
       DEF TEMP_SENSOR Transform {
         translation [0.0 0.0 2.2]
-        scale [1.0 1.0 1.0]
+        scale [1.0 1.0 1.0] # Default scale
         children [
           Shape { appearance Appearance { material USE SENSOR_MATERIAL } geometry Sphere { radius 0.2 } }
           Transform { translation [0.0 0.0 -0.5] children [ Shape { appearance Appearance { material USE SENSOR_MATERIAL } geometry Cylinder { height 1.0 radius 0.05 } } ] }
@@ -140,7 +136,7 @@ X3D {
 
       DEF PRESS_SENSOR Transform {
         translation [0.0 2.7 0.0]
-        scale [1.0 1.0 1.0]
+        scale [1.0 1.0 1.0] # Default scale
         children [ Shape { appearance Appearance { material USE SENSOR_MATERIAL } geometry Box { size [0.4 0.4 0.4] } } ]
       }
 
@@ -154,18 +150,8 @@ X3D {
       DEF REACTOR_PROXIMITY ProximitySensor { size [10.0 10.0 10.0] center [0.0 0.0 0.0] }
       DEF REACTOR_TRANSPARENCY_SWITCH Script { eventIn SFBool set_transparency eventOut SFFloat transparency_changed url "javascript: function set_transparency(value) { if (value) transparency_changed = 0.7; else transparency_changed = 0.0; }" }
 
-      # --- ROUTING STATEMENTS (CRITICAL for Simulink Connectivity) ---
-      ROUTE reactor_color_input_simulink TO REACTOR_BODY_INSTANCE.reactor_color_input
-      ROUTE reactor_transparency_input_simulink TO REACTOR_BODY_INSTANCE.reactor_transparency_input
-
-      ROUTE liquid_level_input_simulink TO LIQUID.translation
-      ROUTE liquid_transparency_input_simulink TO LIQUID_MATERIAL_NODE.transparency
-
-      ROUTE agitator_rotation_input_simulink TO AGITATOR.rotation
-      ROUTE valve_knob_rotation_input_simulink TO VALVE_KNOB.rotation
-
-      ROUTE temp_sensor_scale_input_simulink TO TEMP_SENSOR.scale
-      ROUTE press_sensor_scale_input_simulink TO PRESS_SENSOR.scale
+      # --- ROUTING STATEMENTS (THESE WERE REMOVED AS TOP-LEVEL FIELDS ARE GONE) ---
+      # No more ROUTES here, as Simulink will directly target node properties.
     ]
   }
 }
